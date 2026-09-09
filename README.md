@@ -3,7 +3,7 @@
 > Hardware Inventory Demo — 本地电子元器件库存管理，含 3D 器件收纳、BOM 导入、Gerber 焊接对料和 12 套主题。  
 > 纯静态前端：**没有账号系统、没有云端同步、没有 Cloudflare Worker / D1、没有管理员后台**。所有数据只保存在浏览器 `localStorage`。
 
-![库存总览](docs/screenshot.png)
+![3D 器件收纳](docs/screenshot.png)
 
 ![12 套主题](docs/themes.png)
 
@@ -66,21 +66,23 @@ python -m http.server 4173 --directory public
 
 ---
 
-## 演示数据
+## 初始数据与本地存储
 
-- 内置 **12 条合成元件**和 **6 条出入库流水**，不包含任何真实库存数据。
-- 首次打开使用内置演示数据；之后的修改保存在浏览器 `localStorage`。
-- 顶栏的「重置演示数据」按钮可以一键恢复内置演示数据。
+- 默认是**空仓库**：不包含任何真实库存，也不预置演示元件；首次打开所有统计为 0。
+- 访问者可以自己添加元件、导入 BOM、编辑 3D 位置；所有数据只保存在当前浏览器 `localStorage`。
+- 顶栏的「清空本机数据」按钮可以一键删除当前浏览器里的本地数据。
 - 换浏览器、换设备或清除浏览器数据后，数据不会自动同步。
 
 本地存储键：
 
 | 键 | 用途 |
 | --- | --- |
-| `component-vault-demo-data-v1` | 库存、流水、板卡、3D 位置、收纳盒 |
+| `component-vault-open-source-data-v1` | 元件、流水、板卡、3D 位置、收纳盒 |
 | `component-vault-theme` | 当前主题 |
 | `component-vault-theme-mode` | 当前主题明暗模式 |
 | `component-vault-sidebar-collapsed` | 侧栏收缩状态 |
+
+![空仓库的元件明细](docs/empty-inventory.png)
 
 ---
 
@@ -148,13 +150,14 @@ window.LCSC_LOOKUP = { apiBase: '' };
 - 没有账号、密码、Cookie、Token、Session。
 - 没有云端同步，没有后端数据库。
 - 没有上传接口；BOM、Gerber、二维码都在浏览器本地解析。
-- 演示数据是合成数据，不包含任何真实库存、邮箱或账号信息。
+- 仓库默认不包含任何库存数据；访问者自己添加的数据只保存在本机浏览器，不会上传。
 - 导入自己的 BOM / Gerber 时，文件只在当前浏览器内处理。
 
 ---
 
 ## 已知限制
 
+- 默认是空仓库，需要自己添加元件或导入 BOM 才能看到库存数据。
 - 数据只保存在当前浏览器，不跨设备、不跨浏览器同步。
 - 3D 模型是程序生成的展示模型，没有毫米级尺寸标定，不能用于加工。
 - BOM 中同一行包含多个阻值/容值时，系统会拆分并匹配，但不会猜测每种值的实际数量；数量需要人工确认后才会扣库存。

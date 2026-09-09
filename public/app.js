@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'component-vault-demo-data-v1';
+  const STORAGE_KEY = 'component-vault-open-source-data-v1';
   const CATEGORY_COLORS = ['#168a62', '#3377b8', '#c77917', '#7358ac', '#7c938a', '#c84e4e'];
   const titleMap = {
     storage: ['实物位置', '3D 器件收纳'],
@@ -14,36 +14,18 @@
 
   const lcscApiBase = String(window.LCSC_LOOKUP?.apiBase || '').replace(/\/$/, '');
   let syncStatus = 'local';
-  let syncMessage = '本地演示模式 · 数据只保存在当前浏览器';
+  let syncMessage = '本地模式 · 数据只保存在当前浏览器';
 
+  // 开源版默认是空仓库：不包含任何真实库存或演示元件。
+  // 访问者可以自己添加元件，数据只保存在浏览器 localStorage。
   const demoData = {
-    components: [
-      { id: 'cmp-001', name: 'STM32F334C8T6', code: 'C8734', category: 'MCU', brand: 'ST', package: 'LQFP-48', specs: 'Cortex-M4 · 72MHz · 128KB Flash', location: 'A-01-03', quantity: 18, min: 5, supplier: '立创商城', notes: '主控平台首选', updatedAt: '2026-07-12T01:38:00+08:00' },
-      { id: 'cmp-002', name: 'EG1192S', code: 'C49307690', category: 'DC-DC 电源', brand: 'EG（屹晶微）', package: 'ESOP-8', specs: '降压型 10V~100V · 3A · 110kHz', location: 'B-02-01', quantity: 30, min: 8, supplier: '立创商城', notes: '', updatedAt: '2026-07-12T01:12:00+08:00' },
-      { id: 'cmp-003', name: 'AP63356DV-7', code: 'C2157973', category: 'DC-DC 电源', brand: 'DIODES', package: 'VDFN3020-13', specs: '降压型 3.8V~32V · 3.5A', location: 'B-02-02', quantity: 20, min: 6, supplier: '立创商城', notes: '', updatedAt: '2026-07-11T18:20:00+08:00' },
-      { id: 'cmp-004', name: 'SX1308', code: 'C78162', category: 'DC-DC 电源', brand: 'SX（硕芯科技）', package: 'SOT-23-6', specs: '升压型 2V~24V · 2A · 1.2MHz', location: 'B-02-03', quantity: 4, min: 10, supplier: '立创商城', notes: '库存偏低', updatedAt: '2026-07-11T16:42:00+08:00' },
-      { id: 'cmp-005', name: 'CH340N', code: 'C506813', category: '接口芯片', brand: 'WCH（沁恒）', package: 'SOP-8', specs: 'USB 转串口 · 3.3V/5V', location: 'A-03-01', quantity: 25, min: 8, supplier: '立创商城', notes: '', updatedAt: '2026-07-10T20:05:00+08:00' },
-      { id: 'cmp-006', name: 'INA240A1PWR', code: 'C191104', category: '模拟芯片', brand: 'TI', package: 'TSSOP-8', specs: '电流检测 · 20V/V · -4V~80V', location: 'C-01-04', quantity: 3, min: 5, supplier: '立创商城', notes: '电机电流采样', updatedAt: '2026-07-10T17:30:00+08:00' },
-      { id: 'cmp-007', name: 'UCC21520DWR', code: 'C192067', category: '栅极驱动', brand: 'TI', package: 'SOIC-16W', specs: '双通道隔离驱动 · 4A/6A', location: 'C-02-01', quantity: 12, min: 4, supplier: '立创商城', notes: '', updatedAt: '2026-07-09T14:15:00+08:00' },
-      { id: 'cmp-008', name: 'DRV8313RHHR', code: 'C92458', category: '电机驱动', brand: 'TI', package: 'VQFN-36', specs: '三路半桥 · 2.5A · 8V~60V', location: 'C-02-02', quantity: 0, min: 3, supplier: '立创商城', notes: '待采购', updatedAt: '2026-07-09T10:08:00+08:00' },
-      { id: 'cmp-009', name: 'CH224K', code: 'C970725', category: '接口芯片', brand: 'WCH（沁恒）', package: 'ESSOP-10', specs: 'USB PD 受电协议 · 5V~20V', location: 'A-03-02', quantity: 16, min: 5, supplier: '立创商城', notes: '', updatedAt: '2026-07-08T19:20:00+08:00' },
-      { id: 'cmp-010', name: 'TPD4E05U06DQAR', code: 'C138714', category: '保护器件', brand: 'TI', package: 'USON-10', specs: '4 通道 ESD · 5.5V · 0.5pF', location: 'D-01-01', quantity: 42, min: 15, supplier: '立创商城', notes: '', updatedAt: '2026-07-08T13:54:00+08:00' },
-      { id: 'cmp-011', name: '100nF ±10% 50V', code: 'C14663', category: '电容', brand: '三星电机', package: '0603', specs: 'X7R · 100nF · ±10% · 50V', location: 'E-01-02', quantity: 86, min: 50, supplier: '立创商城', notes: '通用去耦', updatedAt: '2026-07-07T21:32:00+08:00' },
-      { id: 'cmp-012', name: '10kΩ ±1%', code: 'C25804', category: '电阻', brand: '厚声', package: '0603', specs: '10kΩ · ±1% · 100mW', location: 'E-02-01', quantity: 120, min: 50, supplier: '立创商城', notes: '通用阻值', updatedAt: '2026-07-07T18:10:00+08:00' }
-    ],
-    transactions: [
-      { id: 'txn-001', componentId: 'cmp-001', type: 'in', quantity: 10, note: '采购到货', createdAt: '2026-07-12T01:38:00+08:00' },
-      { id: 'txn-002', componentId: 'cmp-004', type: 'out', quantity: 6, note: '升压模块打样', createdAt: '2026-07-11T16:42:00+08:00' },
-      { id: 'txn-003', componentId: 'cmp-006', type: 'out', quantity: 2, note: '电流采样板', createdAt: '2026-07-10T17:30:00+08:00' },
-      { id: 'txn-004', componentId: 'cmp-005', type: 'in', quantity: 20, note: '采购补充', createdAt: '2026-07-10T20:05:00+08:00' },
-      { id: 'txn-005', componentId: 'cmp-008', type: 'out', quantity: 3, note: '无刷电机驱动板', createdAt: '2026-07-09T10:08:00+08:00' },
-      { id: 'txn-006', componentId: 'cmp-010', type: 'in', quantity: 30, note: '常用料补货', createdAt: '2026-07-08T13:54:00+08:00' }
-    ],
+    components: [],
+    transactions: [],
     boardProjects: [],
     lastSavedAt: new Date().toISOString()
   };
 
-  const CURRENT_SEED_VERSION = 'demo-v2';
+  const CURRENT_SEED_VERSION = 'open-source-empty-v1';
   const initialData = { ...demoData, favorites: [], boardProjects: [], seedVersion: CURRENT_SEED_VERSION };
 
   let state = loadLocalState();
@@ -139,7 +121,7 @@
     const statusBox = $('#sidebarStatus');
     if (!title || !detail || !statusBox) return;
 
-    title.textContent = '本地演示模式';
+    title.textContent = '本地模式';
     detail.textContent = syncMessage || relativeTime(state.lastSavedAt);
     statusBox.dataset.sync = 'local';
   }
@@ -2251,11 +2233,11 @@
       if ($('#csvFileInput').files[0]) importAnyFile($('#csvFileInput').files[0]);
     });
     function resetDemoData() {
-      if (!window.confirm('重置为内置演示数据？当前浏览器里的本地修改会被覆盖。')) return;
+      if (!window.confirm('清空当前浏览器里的本地数据？你添加的元件、流水、板卡和 3D 位置都会被删除，且无法恢复。')) return;
       state = clone(initialData);
       persistLocal();
       renderAll();
-      showToast('已重置为演示数据');
+      showToast('本机数据已清空');
     }
     $('#syncNowButton')?.addEventListener('click', resetDemoData);
     $('#syncNowButtonTop')?.addEventListener('click', resetDemoData);
@@ -2411,7 +2393,7 @@
   };
   bindEvents();
   persistLocal();
-  setSyncStatus('local', '本地演示模式 · 数据只保存在当前浏览器');
+  setSyncStatus('local', '本地模式 · 数据只保存在当前浏览器');
   renderAll();
   if (new URLSearchParams(location.search).get('view') === 'storage') switchView('storage');
 })();
