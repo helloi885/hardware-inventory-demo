@@ -1,7 +1,7 @@
 # 元件仓 · 开源演示版
 
 > Hardware Inventory Demo — 本地电子元器件库存管理，含 3D 器件收纳、BOM 导入、Gerber 焊接对料和 12 套主题。  
-> 纯静态前端：**没有账号系统、没有云端同步、没有 Cloudflare Worker / D1、没有管理员后台**。所有数据只保存在浏览器 `localStorage`。
+> 纯静态前端。所有数据只保存在浏览器 `localStorage`。
 
 ![3D 器件收纳](docs/screenshot.png)
 
