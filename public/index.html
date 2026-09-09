@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f6f5">
+  <title>元件仓 · 硬件库存管理</title>
+  <script>
+    try {
+      var themeId = localStorage.getItem('component-vault-theme');
+      var themeMode = localStorage.getItem('component-vault-theme-mode');
+      if (themeId && /^[a-z][a-z0-9-]{0,23}$/.test(themeId)) {
+        document.documentElement.setAttribute('data-theme', themeId);
+        document.documentElement.setAttribute('data-theme-mode', themeMode === 'dark' ? 'dark' : 'light');
+      }
+      if (localStorage.getItem('component-vault-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="storage3d/storage.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="appSidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><i data-lucide="microchip"></i></div>
+        <div class="brand-copy">
+          <strong>元件仓</strong>
+          <span>Hardware Inventory</span>
+        </div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-expanded="true" aria-controls="appSidebar" title="收起侧边栏" aria-label="收起侧边栏">
+          <i data-lucide="chevrons-left"></i>
+        </button>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item" data-view="storage"><i data-lucide="box"></i><span>3D 器件收纳</span><b id="navStorageCount">11</b></button>
+        <button class="nav-item active" data-view="overview">
+          <i data-lucide="layout-dashboard"></i><span>库存总览</span>
+        </button>
+        <button class="nav-item" data-view="inventory">
+          <i data-lucide="boxes"></i><span>元件明细</span><b id="navItemCount">0</b>
+        </button>
+        <button class="nav-item" data-view="transactions">
+          <i data-lucide="arrow-left-right"></i><span>出入库记录</span>
+        </button>
+        <button class="nav-item" data-view="projects">
+          <i data-lucide="circuit-board"></i><span>板卡 / BOM</span><b id="navProjectCount">0</b>
+        </button>
+        <button class="nav-item" data-view="solder">
+          <i data-lucide="scan-search"></i><span>焊接对料</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-status" id="sidebarStatus" data-sync="local">
+        <span class="status-dot"></span>
+        <div>
+          <strong id="syncTitle">本地演示模式</strong>
+          <small id="lastSaved">数据只保存在当前浏览器</small>
+          <button type="button" class="sync-button" id="syncNowButton">重置演示数据</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="page-heading">
+          <p id="pageEyebrow">工作台</p>
+          <div class="title-row">
+            <h1 id="pageTitle">库存总览</h1>
+            <span class="demo-badge"><i data-lucide="flask-conical"></i>开源演示版</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <label class="global-search" for="globalSearch">
+            <i data-lucide="search"></i>
+            <input id="globalSearch" type="search" placeholder="搜索型号、参数、库位" autocomplete="off">
+            <kbd>Ctrl K</kbd>
+          </label>
+          <button class="icon-button" id="syncNowButtonTop" title="重置演示数据" aria-label="重置演示数据">
+            <i data-lucide="rotate-ccw"></i>
+          </button>
+          <button class="icon-button" id="lowStockShortcut" title="查看低库存" aria-label="查看低库存">
+            <i data-lucide="bell"></i><span class="notification-dot" id="notificationDot"></span>
+          </button>
+          <button class="icon-button" id="themeButton" title="切换主题" aria-label="切换主题" aria-haspopup="dialog">
+            <i data-lucide="palette"></i>
+          </button>
+          <button class="button primary" id="openAddButton"><i data-lucide="plus"></i>添加元件</button>
+        </div>
+      </header>
+
+      <div class="content-wrap">
+<section class="view" id="storageView" data-view-panel="storage"></section>
+        <section class="view active" id="overviewView" data-view-panel="overview">
+          <div class="welcome-banner panel">
+            <div class="welcome-copy">
+              <p class="eyebrow" id="welcomeEyebrow">工作台</p>
+              <h2 id="welcomeTitle">你好，今天仓库状态良好</h2>
+              <p id="welcomeHint">点击上方统计卡片可跳转明细；低库存与未分配库位可直接处理。</p>
+            </div>
+            <div class="welcome-metrics">
+              <div><span>今日入库</span><strong id="todayIn">0</strong></div>
+              <div><span>今日出库</span><strong id="todayOut">0</strong></div>
+              <div><span>库存健康度</span><strong id="healthScore">100%</strong></div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <button type="button" class="stat-card accent-green" data-stat-jump="all" title="查看全部元件">
+              <div class="stat-icon"><i data-lucide="package-open"></i></div>
+              <div><span>元件种类</span><strong id="statTypes">0</strong><small id="statTypesNote">0 个分类</small></div>
+              <i class="stat-chevron" data-lucide="chevron-right"></i>
+            </button>
+            <button type="button" class="stat-card accent-blue" data-stat-jump="all" title="查看元件明细">
+              <div class="stat-icon"><i data-lucide="layers-3"></i></div>
+              <div><span>库存总量</span><strong id="statQuantity">0</strong><small>实时库存合计 · 点击查看</small></div>
+              <i class="stat-chevron" data-lucide="chevron-right"></i>
+            </button>
+            <button type="button" class="stat-card accent-amber" data-stat-jump="low" title="查看低库存">
+              <div class="stat-icon"><i data-lucide="triangle-alert"></i></div>
+              <div><span>低库存</span><strong id="statLow">0</strong><small>点击查看并补货</small></div>
+              <i class="stat-chevron" data-lucide="chevron-right"></i>
+            </button>
+            <button type="button" class="stat-card accent-violet" data-stat-jump="no-location" title="查看未分配库位">
+              <div class="stat-icon"><i data-lucide="map-pin"></i></div>
+              <div><span>已用库位</span><strong id="statLocations">0</strong><small id="statLocationNote">点击管理库位</small></div>
+              <i class="stat-chevron" data-lucide="chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel quick-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">快捷操作</p><h2>今天要处理什么？</h2></div>
+              </div>
+              <div class="quick-actions">
+                <button class="quick-action inbound" data-adjust-mode="in">
+                  <span class="quick-icon"><i data-lucide="package-plus"></i></span>
+                  <span><strong>元件入库</strong><small>采购到货、退料归还</small></span>
+                  <i data-lucide="arrow-up-right"></i>
+                </button>
+                <button class="quick-action outbound" data-adjust-mode="out">
+                  <span class="quick-icon"><i data-lucide="package-minus"></i></span>
+                  <span><strong>元件出库</strong><small>领料使用、损耗报废</small></span>
+                  <i data-lucide="arrow-up-right"></i>
+                </button>
+                <button class="quick-action scan" id="openScanButton">
+                  <span class="quick-icon"><i data-lucide="scan-line"></i></span>
+                  <span><strong>扫码入库</strong><small>嘉立创标签、二维码、扫码枪</small></span>
+                  <i data-lucide="arrow-up-right"></i>
+                </button>
+                <button class="quick-action restock" id="openRestockButton">
+                  <span class="quick-icon"><i data-lucide="shopping-cart"></i></span>
+                  <span><strong>补货清单</strong><small>一键导出待采购列表</small></span>
+                  <i data-lucide="arrow-up-right"></i>
+                </button>
+              </div>
+            </section>
+
+            <section class="panel category-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">库存结构</p><h2>分类占比</h2></div>
+                <button class="text-button" data-go-inventory>查看全部<i data-lucide="arrow-right"></i></button>
+              </div>
+              <div class="category-chart-wrap">
+                <div class="donut-chart" id="categoryDonut" aria-label="库存分类占比">
+                  <div><strong id="donutTotal">0</strong><span>总库存</span></div>
+                </div>
+                <div class="category-legend" id="categoryLegend"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="dashboard-grid lower-grid">
+            <section class="panel recent-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">库存动态</p><h2>最近操作</h2></div>
+                <button class="text-button" data-view-target="transactions">完整记录<i data-lucide="arrow-right"></i></button>
+              </div>
+              <div class="activity-list" id="recentActivity"></div>
+            </section>
+
+            <section class="panel alert-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">补货提醒</p><h2>库存预警</h2></div>
+                <div class="panel-header-actions">
+                  <button type="button" class="text-button" id="viewAllLowButton">查看全部</button>
+                  <span class="count-badge" id="lowCountBadge">0 项</span>
+                </div>
+              </div>
+              <div class="low-stock-list" id="lowStockList"></div>
+            </section>
+          </div>
+
+          <div class="dashboard-grid lower-grid">
+            <section class="panel favorites-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">常用料</p><h2>收藏夹</h2></div>
+                <span class="count-badge neutral-badge" id="favoriteCountBadge">0 项</span>
+              </div>
+              <div class="favorites-list" id="favoritesList"></div>
+            </section>
+            <section class="panel insight-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">仓库洞察</p><h2>值得关注</h2></div>
+              </div>
+              <div class="insight-list" id="insightList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="inventoryView" data-view-panel="inventory">
+          <div class="inventory-toolbar panel">
+            <div class="filter-row filter-row-extended">
+              <label class="field-search" for="inventorySearch"><i data-lucide="search"></i><input id="inventorySearch" type="search" placeholder="搜索型号、编号、品牌、参数、库位"></label>
+              <label class="select-control"><i data-lucide="tag"></i><select id="categoryFilter"><option value="all">全部分类</option></select><i data-lucide="chevron-down"></i></label>
+              <label class="select-control"><i data-lucide="circle-gauge"></i><select id="stockFilter"><option value="all">全部库存</option><option value="low">仅看低库存</option><option value="normal">库存正常</option><option value="zero">已经缺货</option></select><i data-lucide="chevron-down"></i></label>
+              <label class="select-control"><i data-lucide="map-pin"></i><select id="locationFilter"><option value="all">全部库位</option><option value="assigned">已分配库位</option><option value="none">未分配库位</option></select><i data-lucide="chevron-down"></i></label>
+              <button class="button secondary mobile-filter-button" id="resetFilters"><i data-lucide="rotate-ccw"></i>重置</button>
+            </div>
+            <div class="toolbar-meta">
+              <span id="inventoryResultCount">共 0 种元件</span>
+              <div class="toolbar-buttons">
+                <input id="csvFileInput" type="file" accept=".csv,text/csv,.json,application/json" hidden>
+                <button class="button secondary" id="exportRestockButton"><i data-lucide="shopping-cart"></i><span>补货清单</span></button>
+                <button class="button secondary" id="importButton"><i data-lucide="upload"></i><span>导入</span></button>
+                <button class="button secondary" id="exportButton"><i data-lucide="download"></i><span>导出 CSV</span></button>
+                <button class="button secondary" id="exportJsonButton"><i data-lucide="hard-drive-download"></i><span>完整备份</span></button>
+              </div>
+            </div>
+            <div class="batch-toolbar" id="batchToolbar">
+              <label class="batch-check"><input id="selectAllFiltered" type="checkbox"><span>选择当前筛选结果</span></label>
+              <strong id="selectedCount">已选 0 项</strong>
+              <span class="footer-spacer"></span>
+              <button class="button secondary" id="clearSelectionButton" disabled>清空</button>
+              <button class="button secondary" id="batchOutButton" disabled><i data-lucide="package-minus"></i>批量出库</button>
+              <button class="button primary" id="batchInButton" disabled><i data-lucide="package-plus"></i>批量入库</button>
+            </div>
+          </div>
+
+          <div class="inventory-table-wrap panel">
+            <table class="inventory-table">
+              <thead><tr><th class="select-column"><span class="sr-only">选择</span></th><th>元件</th><th>分类 / 参数</th><th>库存</th><th>封装</th><th>库位</th><th>更新时间</th><th class="action-column">操作</th></tr></thead>
+              <tbody id="inventoryTableBody"></tbody>
+            </table>
+            <div class="mobile-inventory-list" id="mobileInventoryList"></div>
+            <div class="empty-state" id="inventoryEmpty" hidden>
+              <i data-lucide="package-search"></i><strong>没有找到匹配的元件</strong><span>调整筛选条件，或添加新的元件。</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="transactionsView" data-view-panel="transactions">
+          <div class="transaction-summary">
+            <article><span class="summary-icon in"><i data-lucide="arrow-down-left"></i></span><div><small>累计入库</small><strong id="totalInbound">0</strong></div></article>
+            <article><span class="summary-icon out"><i data-lucide="arrow-up-right"></i></span><div><small>累计出库</small><strong id="totalOutbound">0</strong></div></article>
+            <article><span class="summary-icon neutral"><i data-lucide="history"></i></span><div><small>操作记录</small><strong id="transactionCount">0</strong></div></article>
+          </div>
+          <section class="panel transaction-panel">
+            <div class="panel-header transaction-header">
+              <div><p class="eyebrow">流水明细</p><h2>出入库记录</h2></div>
+              <div class="segmented-control" id="transactionFilter" aria-label="记录类型筛选">
+                <button class="active" data-transaction-filter="all">全部</button>
+                <button data-transaction-filter="in">入库</button>
+                <button data-transaction-filter="out">出库</button>
+              </div>
+            </div>
+            <div class="transaction-list" id="transactionList"></div>
+          </section>
+        </section>
+
+        <section class="view" id="projectsView" data-view-panel="projects">
+          <section class="panel bom-hero">
+            <div>
+              <p class="eyebrow">板卡领料</p>
+              <h2>导入 BOM，核对后从库存领料</h2>
+              <p>支持 XLSX、XLS、CSV。只自动使用型号或立创编号完全一致且库存足够的元件；合并料号会交给你确认。嘉立创导出格式见下方说明。</p>
+            </div>
+            <div class="bom-import-actions">
+              <input id="bomFileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden>
+              <button type="button" class="button secondary" id="openSolderFromProjects"><i data-lucide="scan-search"></i>焊接对料</button>
+              <button type="button" class="button primary" id="importBomButton"><i data-lucide="file-up"></i>导入板卡 BOM</button>
+            </div>
+          </section>
+          <details class="lcsc-export-guide">
+            <summary>嘉立创 BOM 导出格式</summary>
+            <div class="lcsc-export-grid">
+              <article>
+                <h3><i data-lucide="file-spreadsheet"></i>导出步骤</h3>
+                <ol>
+                  <li>嘉立创 EDA：<strong>文件 → 导出 → 物料清单(BOM)…</strong></li>
+                  <li>文件类型选 <strong>XLSX</strong></li>
+                  <li>位号、封装的「分组」选 <strong>是</strong></li>
+                  <li>点 <strong>导出BOM</strong> 后再导入本页</li>
+                </ol>
+              </article>
+              <article>
+                <h3><i data-lucide="table"></i>必须包含的列</h3>
+                <table class="lcsc-export-cols">
+                  <thead><tr><th>标题</th><th>属性</th><th>分组</th></tr></thead>
+                  <tbody>
+                    <tr><td>Comment</td><td>备注</td><td>无</td></tr>
+                    <tr><td>Designator</td><td>位号</td><td>是</td></tr>
+                    <tr><td>Footprint</td><td>封装</td><td>是</td></tr>
+                    <tr><td>Manufacturer Part</td><td>制造商编号</td><td>无</td></tr>
+                  </tbody>
+                </table>
+              </article>
+            </div>
+          </details>
+          <div class="bom-project-summary">
+            <article><small>已保存板卡</small><strong id="projectCount">0</strong></article>
+            <article><small>累计 BOM 领料</small><strong id="projectDeductedTotal">0</strong></article>
+            <article><small>待采购 / 待确认</small><strong id="projectUnresolvedTotal">0</strong></article>
+          </div>
+          <section class="panel bom-project-panel">
+            <div class="panel-header">
+              <div><p class="eyebrow">项目记录</p><h2>板卡与领料快照</h2></div>
+            </div>
+            <div class="bom-project-list" id="bomProjectList"></div>
+          </section>
+        </section>
+
+        <section class="view" id="solderView" data-view-panel="solder">
+          <section class="panel solder-toolbar">
+            <div class="solder-toolbar-copy">
+              <p class="eyebrow">焊接对料</p>
+              <h2>Gerber 上看位置，对照 BOM 焊接</h2>
+              <p id="solderStatus">先按下面格式从嘉立创导出 Gerber ZIP 和 BOM。ZIP 里若带坐标会自动点亮焊盘；BOM 通常要单独导出后再点「加载 BOM」。</p>
+            </div>
+            <div class="solder-toolbar-actions">
+              <input id="gerberZipInput" type="file" accept=".zip,application/zip" hidden>
+              <input id="solderBomInput" type="file" accept=".xlsx,.xls,.csv,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden>
+              <input id="solderPnpInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain" hidden>
+              <button type="button" class="button primary" id="openGerberZipButton"><i data-lucide="file-archive"></i>打开 Gerber ZIP</button>
+              <button type="button" class="button secondary" id="openSolderBomButton"><i data-lucide="file-spreadsheet"></i>加载 BOM</button>
+              <button type="button" class="button secondary" id="openSolderPnpButton"><i data-lucide="map-pin"></i>加载坐标</button>
+              <button type="button" class="button secondary" id="solderScanButton"><i data-lucide="scan-line"></i>扫码匹配</button>
+              <button type="button" class="button danger-text" id="clearSolderSessionButton" disabled><i data-lucide="eraser"></i>清空当前</button>
+            </div>
+          </section>
+          <details class="lcsc-export-guide" open>
+            <summary>嘉立创怎么导出 Gerber 和 BOM</summary>
+            <div class="lcsc-export-grid">
+              <article>
+                <h3><i data-lucide="file-archive"></i>Gerber（制板文件）</h3>
+                <ol>
+                  <li>嘉立创 EDA：<strong>文件 → 导出 → PCB制板文件(Gerber)…</strong></li>
+                  <li>文件名只用英文或数字，例如 <code>Gerber_PCB1_2026-09-09</code></li>
+                  <li>选项选 <strong>一键导出</strong>，不要勾彩色丝印</li>
+                  <li>点 <strong>导出Gerber</strong>，得到 ZIP，再点本页「打开 Gerber ZIP」</li>
+                </ol>
+                <p>要在板上点亮焊盘，同一菜单再导出 <strong>坐标文件(CPL)</strong> 或 <strong>飞针测试文件</strong>，用「加载坐标」导入。一键导出的 ZIP 一般不含 BOM。</p>
+              </article>
+              <article>
+                <h3><i data-lucide="file-spreadsheet"></i>BOM（物料清单）</h3>
+                <ol>
+                  <li>嘉立创 EDA：<strong>文件 → 导出 → 物料清单(BOM)…</strong></li>
+                  <li>文件类型选 <strong>XLSX</strong></li>
+                  <li>右侧列必须有下面四项；位号、封装的「分组」选 <strong>是</strong></li>
+                  <li>点 <strong>导出BOM</strong>，再点本页「加载 BOM」</li>
+                </ol>
+                <table class="lcsc-export-cols">
+                  <thead><tr><th>标题</th><th>属性</th><th>分组</th></tr></thead>
+                  <tbody>
+                    <tr><td>Comment</td><td>备注</td><td>无</td></tr>
+                    <tr><td>Designator</td><td>位号</td><td>是</td></tr>
+                    <tr><td>Footprint</td><td>封装</td><td>是</td></tr>
+                    <tr><td>Manufacturer Part</td><td>制造商编号</td><td>无</td></tr>
+                  </tbody>
+                </table>
+              </article>
+            </div>
+          </details>
+          <div class="solder-saved-bar">
+            <div class="solder-save-form">
+              <label class="solder-board-name"><span>板卡名称</span><input id="solderBoardName" placeholder="例如 Board1 焊接"></label>
+              <button type="button" class="button primary" id="saveSolderBoardButton"><i data-lucide="save"></i>保存当前板卡</button>
+            </div>
+            <div class="solder-saved-panel">
+              <div class="solder-saved-head">
+                <div><strong>已保存板卡</strong><small id="solderSavedCount">0 块</small></div>
+                <label class="solder-saved-search"><i data-lucide="search"></i><input id="solderSavedSearch" type="search" placeholder="搜索板卡名称"></label>
+              </div>
+              <div class="solder-saved-list" id="solderSavedList"></div>
+            </div>
+          </div>
+          <div class="solder-controls">
+            <div class="segmented-control" id="solderLayerMode" aria-label="图层显示">
+              <button type="button" data-solder-mode="both" class="active">同时显示</button>
+              <button type="button" data-solder-mode="top">顶层</button>
+              <button type="button" data-solder-mode="bottom">底层</button>
+            </div>
+            <button type="button" class="button secondary" id="solderFitButton"><i data-lucide="fullscreen"></i>适应窗口</button>
+            <label class="solder-search"><i data-lucide="search"></i><input id="solderBomSearch" type="search" placeholder="搜索位号、型号、封装"></label>
+          </div>
+          <div class="solder-workspace" id="solderWorkspace">
+            <aside class="panel solder-bom-panel">
+              <div class="panel-header">
+                <div><p class="eyebrow">BOM</p><h2 id="solderBomTitle">尚未加载</h2></div>
+                <div class="panel-header-actions">
+                  <button type="button" class="button danger-text" id="clearSolderBomButton" disabled><i data-lucide="trash-2"></i>清除 BOM</button>
+                  <span class="count-badge" id="solderBomCount">0 项</span>
+                </div>
+              </div>
+              <div class="solder-bom-list" id="solderBomList"></div>
+            </aside>
+            <section class="panel solder-board-panel">
+              <div class="panel-header solder-board-head">
+                <div><p class="eyebrow">板图</p><h2 id="solderGerberTitle">尚未打开</h2></div>
+                <button type="button" class="button danger-text" id="clearSolderGerberButton" disabled><i data-lucide="x"></i>关闭 Gerber</button>
+              </div>
+              <div class="gerber-stage" id="gerberStage" data-mode="both" data-layout="row">
+                <article class="gerber-pane" data-side="top">
+                  <header>顶层</header>
+                  <div class="gerber-canvas">
+                    <div class="gerber-board" id="gerberTopBoard"></div>
+                    <svg class="gerber-marks" id="gerberTopMarks" aria-hidden="true"></svg>
+                  </div>
+                </article>
+                <article class="gerber-pane" data-side="bottom">
+                  <header>底层</header>
+                  <div class="gerber-canvas">
+                    <div class="gerber-board" id="gerberBottomBoard"></div>
+                    <svg class="gerber-marks" id="gerberBottomMarks" aria-hidden="true"></svg>
+                  </div>
+                </article>
+              </div>
+              <div class="solder-empty" id="solderEmpty"><i data-lucide="circuit-board"></i><strong>还没有打开 Gerber</strong><span>用嘉立创「一键导出」的 Gerber ZIP。BOM 请按上面的列格式单独导出后加载。</span></div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="modal" id="componentModal">
+    <form id="componentForm">
+      <div class="modal-header">
+        <div><p class="eyebrow" id="componentModalEyebrow">新建资料</p><h2 id="componentModalTitle">添加元件</h2></div>
+        <div class="modal-header-actions"><button type="button" class="button secondary component-scan-button" id="lcscSearchButton" title="开源静态版未配置立创代理"><i data-lucide="search"></i>立创搜索（需代理）</button><button type="button" class="button secondary component-scan-button" id="scanComponentButton"><i data-lucide="scan-line"></i>扫码填充</button><button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button></div>
+      </div>
+      <div class="modal-body form-grid">
+        <input type="hidden" id="componentId">
+        <label class="form-field full"><span>型号 / 名称 <b>*</b></span><input id="componentName" required placeholder="例如 STM32F334C8T6"></label>
+        <label class="form-field"><span>分类 <b>*</b></span><input id="componentCategory" required list="categorySuggestions" placeholder="例如 MCU"></label>
+        <label class="form-field"><span>品牌</span><input id="componentBrand" placeholder="例如 ST"></label>
+        <label class="form-field"><span>封装</span><input id="componentPackage" placeholder="例如 LQFP-48"></label>
+        <label class="form-field"><span>立创 / 物料编号</span><input id="componentCode" placeholder="例如 C8734"></label>
+        <label class="form-field full"><span>参数值</span><input id="componentSpecs" placeholder="例如 72MHz, 128KB Flash"></label>
+        <label class="form-field"><span>当前库存 <b>*</b></span><input id="componentQuantity" required type="number" min="0" step="1" value="0"></label>
+        <label class="form-field"><span>预警库存 <b>*</b></span><input id="componentMin" required type="number" min="0" step="1" value="5"></label>
+        <label class="form-field"><span>库位</span><input id="componentLocation" placeholder="例如 A-03-02"></label>
+        <label class="form-field"><span>供应商</span><input id="componentSupplier" placeholder="例如 立创商城"></label>
+        <label class="form-field full"><span>备注</span><textarea id="componentNotes" rows="3" placeholder="替代料、项目用途等信息"></textarea></label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="button danger-text" id="deleteComponentButton" hidden><i data-lucide="trash-2"></i>删除元件</button>
+        <span class="footer-spacer"></span>
+        <button type="button" class="button secondary close-modal">取消</button>
+        <button type="submit" class="button primary"><i data-lucide="check"></i>保存元件</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal lcsc-modal" id="lcscSearchModal">
+    <form method="dialog" id="lcscSearchForm">
+      <div class="modal-header">
+        <div><p class="eyebrow">立创商城资料</p><h2>搜索并填充元件</h2></div>
+        <button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="lcsc-help">开源静态版不包含立创代理服务。如需按型号或 C 编号搜索立创商城，请自行部署同源 <code>/api/lcsc</code> 代理；其余元件字段仍可手动填写。</p>
+        <div class="lcsc-search-row">
+          <label class="form-field full"><span>型号 / C 编号</span><input id="lcscSearchInput" autocomplete="off" placeholder="例如 STM32F103C8T6 或 C8734"></label>
+          <button type="submit" class="button primary" id="lcscSearchSubmit"><i data-lucide="search"></i>搜索</button>
+        </div>
+        <p class="form-error lcsc-status" id="lcscSearchStatus" role="status"></p>
+        <div class="lcsc-results" id="lcscSearchResults"></div>
+        <p class="lcsc-source-note">开源演示版不包含立创代理服务；如需搜索，请自行部署同源 /api/lcsc 代理。</p>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal compact-modal" id="adjustModal">
+    <form method="dialog" id="adjustForm">
+      <div class="modal-header">
+        <div><p class="eyebrow">库存调整</p><h2>元件出入库</h2></div>
+        <button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="segmented-control adjust-segments">
+          <button type="button" class="active" data-mode="in"><i data-lucide="package-plus"></i>入库</button>
+          <button type="button" data-mode="out"><i data-lucide="package-minus"></i>出库</button>
+        </div>
+        <label class="form-field full"><span>选择元件 <b>*</b></span><select id="adjustComponent" required></select></label>
+        <div class="stock-preview" id="stockPreview"><span>当前库存</span><strong>0</strong></div>
+        <label class="form-field full"><span>数量 <b>*</b></span><input id="adjustQuantity" type="number" min="1" step="1" value="1" required></label>
+        <label class="form-field full"><span>备注</span><input id="adjustNote" placeholder="例如 项目领料 / 采购到货"></label>
+        <p class="form-error" id="adjustError" role="alert"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="button secondary close-modal">取消</button>
+        <button type="submit" class="button primary" id="adjustSubmit"><i data-lucide="check"></i>确认入库</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal compact-modal" id="scanModal">
+    <div class="modal-header">
+      <div><p class="eyebrow">快速入库</p><h2>扫码识别元件</h2></div>
+      <button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body scan-body">
+      <div class="camera-frame" id="cameraFrame">
+        <video id="scanVideo" playsinline muted></video>
+        <canvas id="scanCanvas" hidden></canvas>
+        <div class="scan-guide"><span></span></div>
+        <div class="camera-placeholder" id="cameraPlaceholder"><i data-lucide="scan-line"></i><span>将嘉立创标签上的二维码对准扫描框</span></div>
+      </div>
+      <p class="scan-status" id="scanStatus" hidden>正在识别二维码…</p>
+      <button class="button secondary full-button" id="startCameraButton"><i data-lucide="camera"></i>开启摄像头扫描</button>
+      <p class="scan-tip"><i data-lucide="zap"></i>入库后窗口保持打开，可连续扫下一件。支持嘉立创袋装标签、普通料号和 USB 扫码枪。塑料袋反光时请稍微倾斜。</p>
+      <div class="divider"><span>或粘贴二维码内容 / 输入物料编号</span></div>
+      <label class="field-search scan-input"><i data-lucide="barcode"></i><input id="manualScanInput" placeholder="例如 {on:...,pc:C114425,pm:...,qty:10}"><button id="manualScanButton">解析</button></label>
+      <div id="scanResult" class="scan-result" hidden></div>
+    </div>
+  </dialog>
+
+  <dialog class="modal compact-modal" id="batchModal">
+    <form method="dialog" id="batchForm">
+      <div class="modal-header"><div><p class="eyebrow">整批办理</p><h2 id="batchModalTitle">批量入库</h2></div><button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button></div>
+      <div class="modal-body">
+        <div class="batch-summary" id="batchSummary"></div>
+        <label class="form-field full"><span>每种元件数量 <b>*</b></span><input id="batchQuantity" type="number" min="1" step="1" value="1" required></label>
+        <label class="form-field full"><span>备注</span><input id="batchNote" placeholder="例如 BOM 领料 / 同批到货"></label>
+        <p class="form-error" id="batchError" role="alert"></p>
+      </div>
+      <div class="modal-footer"><button type="button" class="button secondary close-modal">取消</button><button type="submit" class="button primary" id="batchSubmit"><i data-lucide="check"></i>确认批量入库</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal theme-modal" id="themeModal">
+    <div class="modal-header">
+      <div><p class="eyebrow">外观</p><h2>选择主题</h2></div>
+      <button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body theme-modal-body">
+      <p class="theme-intro">12 套配色，选择后保存在本机浏览器，下次打开自动恢复。主题只影响界面显示，不会修改库存或 3D 位置数据。</p>
+      <div class="theme-grid" id="themeGrid" role="radiogroup" aria-label="主题列表"></div>
+    </div>
+    <div class="modal-footer">
+      <span class="theme-current" id="themeCurrent">当前：经典绿</span>
+      <span class="footer-spacer"></span>
+      <button type="button" class="button secondary close-modal">完成</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="restockModal">
+    <div class="modal-header">
+      <div><p class="eyebrow">采购助手</p><h2>补货清单</h2></div>
+      <button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="restock-intro" id="restockIntro">以下元件库存已低于预警值，建议补货到预警数量。</p>
+      <div class="restock-list" id="restockList"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="button secondary close-modal">关闭</button>
+      <button type="button" class="button secondary" id="copyRestockButton"><i data-lucide="copy"></i>复制清单</button>
+      <button type="button" class="button primary" id="downloadRestockButton"><i data-lucide="download"></i>导出 CSV</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal bom-modal" id="bomModal">
+    <div class="modal-header">
+      <div><p class="eyebrow">BOM 匹配预览</p><h2>确认板卡领料</h2></div>
+      <button type="button" class="icon-button close-modal" aria-label="关闭"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body bom-modal-body">
+      <div class="bom-settings">
+        <label class="form-field"><span>板卡 / 项目名称 <b>*</b></span><input id="bomProjectName" required></label>
+        <label class="form-field"><span>制作数量 <b>*</b></span><input id="bomBoardCount" type="number" min="1" step="1" value="1" required></label>
+      </div>
+      <div class="bom-preview-summary" id="bomPreviewSummary"></div>
+      <p class="bom-preview-hint">绿色项默认参与领料；缺料与合并料号不会自动扣减。你可以为它们手动指定库存元件和数量。</p>
+      <div class="bom-line-list" id="bomLineList"></div>
+      <p class="form-error" id="bomError" role="alert"></p>
+    </div>
+    <div class="modal-footer">
+      <span class="bom-selected-total" id="bomSelectedTotal">尚未选择库存元件</span>
+      <span class="footer-spacer"></span>
+      <button type="button" class="button secondary close-modal">取消</button>
+      <button type="button" class="button primary" id="confirmBomDeduction"><i data-lucide="package-minus"></i>确认领料并扣库存</button>
+    </div>
+  </dialog>
+
+  <datalist id="categorySuggestions"></datalist>
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="lucide.min.js"></script>
+  <script src="xlsx.full.min.js"></script>
+  <script src="qr-decoder.js"></script>
+  <script src="jsQR.min.js"></script>
+  <script src="jszip.min.js"></script>
+  <script src="pcb-stackup.min.js"></script>
+  <script src="bom-manager.js"></script>
+  <script src="pickplace-manager.js"></script>
+  <script src="gerber-session.js"></script>
+  <script src="solder-board-store.js"></script>
+  <script src="theme.js"></script>
+  <script src="app.js"></script>
+<script type="module" src="storage3d/bundle.js"></script>
+</body>
+</html>
+

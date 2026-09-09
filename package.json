@@ -1,0 +1,16 @@
+{
+  "name": "hardware-inventory-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "元件仓开源演示版：本地电子元器件库存管理，含 3D 收纳、BOM 导入、Gerber 焊接对料和 12 套主题。纯静态前端，不包含账号系统、云端同步或 Cloudflare Worker。",
+  "scripts": {
+    "build": "esbuild public/storage3d/main.js --bundle --format=esm --minify --outfile=public/storage3d/bundle.js",
+    "serve": "node scripts/serve.cjs",
+    "dev": "node scripts/serve.cjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "three": "0.185.1"
+  },
+  "license": "MIT"
+}
