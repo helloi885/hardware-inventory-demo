@@ -34,7 +34,7 @@
       </div>
 
       <nav class="nav-list">
-        <button class="nav-item" data-view="storage"><i data-lucide="box"></i><span>3D 器件收纳</span><b id="navStorageCount">11</b></button>
+        <button class="nav-item" data-view="storage"><i data-lucide="box"></i><span>3D 器件收纳</span><b id="navStorageCount">2</b></button>
         <button class="nav-item active" data-view="overview">
           <i data-lucide="layout-dashboard"></i><span>库存总览</span>
         </button>
@@ -449,7 +449,7 @@
         <label class="form-field"><span>封装</span><input id="componentPackage" placeholder="例如 LQFP-48"></label>
         <label class="form-field"><span>立创 / 物料编号</span><input id="componentCode" placeholder="例如 C8734"></label>
         <label class="form-field full"><span>参数值</span><input id="componentSpecs" placeholder="例如 72MHz, 128KB Flash"></label>
-        <label class="form-field"><span>当前库存 <b>*</b></span><input id="componentQuantity" required type="number" min="0" step="1" value="0"></label>
+        <label class="form-field"><span>当前库存</span><input id="componentQuantity" type="number" min="0" step="1" placeholder="留空表示未知"></label>
         <label class="form-field"><span>预警库存 <b>*</b></span><input id="componentMin" required type="number" min="0" step="1" value="5"></label>
         <label class="form-field"><span>库位</span><input id="componentLocation" placeholder="例如 A-03-02"></label>
         <label class="form-field"><span>供应商</span><input id="componentSupplier" placeholder="例如 立创商城"></label>
@@ -523,7 +523,7 @@
       <button class="button secondary full-button" id="startCameraButton"><i data-lucide="camera"></i>开启摄像头扫描</button>
       <p class="scan-tip"><i data-lucide="zap"></i>入库后窗口保持打开，可连续扫下一件。支持嘉立创袋装标签、普通料号和 USB 扫码枪。塑料袋反光时请稍微倾斜。</p>
       <div class="divider"><span>或粘贴二维码内容 / 输入物料编号</span></div>
-      <label class="field-search scan-input"><i data-lucide="barcode"></i><input id="manualScanInput" placeholder="例如 {on:...,pc:C114425,pm:...,qty:10}"><button id="manualScanButton">解析</button></label>
+      <label class="field-search scan-input"><i data-lucide="barcode"></i><input id="manualScanInput" placeholder="例如 {on:...,pc:C000000,pm:...,qty:10}"><button id="manualScanButton">解析</button></label>
       <div id="scanResult" class="scan-result" hidden></div>
     </div>
   </dialog>

@@ -1,12 +1,8 @@
-export const defaultBoxes = [
-  ...Array.from({length:8}, (_,i)=>({id:`L${String(i+1).padStart(2,'0')}`,name:`长盒 ${i+1}`,rows:7,cols:8,type:'tray',color:0x8caeb6,custom:false})),
-  {id:'IC01',name:'芯片试管盒',rows:9,cols:9,type:'tube',color:0xe2bd14,custom:false},
-  {id:'C01',name:'电容试管盒',rows:9,cols:9,type:'tube',color:0x149865,custom:false},
-  {id:'R01',name:'电阻试管盒',rows:9,cols:9,type:'tube',color:0x168760,custom:false}
-];
 export const exampleBoxes = [
-  {id:'L01',name:'示例长盒',rows:7,cols:8,type:'tray',color:0x8caeb6,custom:false}
+  {id:'L01',name:'示例长盒',rows:7,cols:8,type:'tray',color:0x8caeb6,custom:false},
+  {id:'T01',name:'示例试管盒',rows:9,cols:9,type:'tube',color:0xe2bd14,custom:false}
 ];
+export const defaultBoxes = exampleBoxes.map(b=>({...b}));
 export const boxes = exampleBoxes;
 
 export function baseBoxesFor(layout){

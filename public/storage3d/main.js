@@ -6,10 +6,11 @@ import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {exampleBoxes,slots,validateRecord,nextBoxId,normalizeBox,mergeBoxes,LIMITS,COLOR_PRESETS} from './model.js';
 
 const root=document.querySelector('#storageView');
-root.innerHTML=`<div class="st-head"><div><h2>3D 器件收纳</h2><div class="st-sub" id="stSummary">1 个收纳盒 · 56 个位置 <span class="st-label">可自定义</span></div></div><div class="st-search-wrap"><input class="st-search" id="stSearch" aria-label="搜索器件或位置" placeholder="搜索器件名称 / 位置编号"></div></div><div class="st-results" id="stResults"></div><div class="st-layout"><aside class="st-list"><div class="st-list-head"><h3>我的收纳盒</h3><button class="st-btn" id="stAddBox" type="button">添加收纳盒</button></div><form id="stBoxForm" class="st-box-form" hidden><label>类型<select id="stBoxType"><option value="tray">长收纳盒</option><option value="tube">正方形试管盒</option></select></label><label>名称<input id="stBoxName" maxlength="40" placeholder="例如 备用长盒"></label><div class="st-box-size"><label>行数<input id="stBoxRows" type="number" min="1" max="12" value="7"></label><label>列数<input id="stBoxCols" type="number" min="1" max="12" value="8"></label></div><p class="st-sub" id="stBoxHint">内部小格 7 × 8，共 56 个位置</p><label>颜色<select id="stBoxColor"></select></label><div class="st-box-form-actions"><button class="st-btn primary" type="submit">保存收纳盒</button><button class="st-btn" id="stBoxCancel" type="button">取消</button></div></form><div id="stBoxes"></div></aside><div class="st-stage"><div class="st-canvas" id="stCanvas"></div><div class="st-tools"><button class="st-btn" id="stAll">全部盒子</button><button class="st-btn" id="stAngle">立体视角</button><button class="st-btn" id="stTop">俯视定位</button><button class="st-btn" id="stLid">合上盒盖</button><button class="st-btn" id="stQuality" aria-pressed="false">流畅模式</button><button class="st-btn" id="stExport">导出模型</button></div><div class="st-hint" id="stHint">拖动旋转 · 滚轮缩放 · 点击小盒选择位置</div></div><aside class="st-editor"><h3>位置与器件</h3><div id="stEmpty" class="st-empty">点击 3D 模型或下方位置表，编辑器件名称。</div><form id="stForm" hidden><div class="st-id" id="stId"></div><div class="st-sub" id="stPosition"></div><label>关联库存器件<select id="stComponent"><option value="">仅命名，不关联库存</option></select></label><label>器件名称<input id="stName" maxlength="80" placeholder="例如 1N5819W"></label><label>备注<textarea id="stNotes" maxlength="500" placeholder="封装、参数或其他说明"></textarea></label><button class="st-btn primary" type="submit">保存此位置</button></form><div class="st-status" id="stStatus" role="status">名称保存在当前浏览器，刷新后仍然保留。</div></aside></div><div class="st-grid-wrap"><div class="st-grid-title"><strong id="stGridTitle"></strong><span class="st-sub">A 行在上方 · 01 列在左侧 · 双击格子改名称</span></div><div id="stGrid" class="st-grid"></div></div>`;
+root.innerHTML=`<div class="st-head"><div><h2>3D 器件收纳</h2><div class="st-sub" id="stSummary">1 个收纳盒 · 56 个位置 <span class="st-label">可自定义</span></div></div><div class="st-search-wrap"><input class="st-search" id="stSearch" aria-label="搜索器件或位置" placeholder="搜索器件名称 / 位置编号"></div></div><div class="st-results" id="stResults"></div><div class="st-layout"><aside class="st-list"><div class="st-list-head"><h3>我的收纳盒</h3><button class="st-btn" id="stAddBox" type="button">添加收纳盒</button></div><form id="stBoxForm" class="st-box-form" hidden><label>类型<select id="stBoxType"><option value="tray">长收纳盒</option><option value="tube">正方形试管盒</option></select></label><label>名称<input id="stBoxName" maxlength="40" placeholder="例如 备用长盒"></label><div class="st-box-size"><label>行数<input id="stBoxRows" type="number" min="1" max="12" value="7"></label><label>列数<input id="stBoxCols" type="number" min="1" max="12" value="8"></label></div><p class="st-sub" id="stBoxHint">内部小格 7 × 8，共 56 个位置</p><label>颜色<select id="stBoxColor"></select></label><div class="st-box-form-actions"><button class="st-btn primary" type="submit">保存收纳盒</button><button class="st-btn" id="stBoxCancel" type="button">取消</button></div></form><div id="stBoxes"></div></aside><div class="st-stage"><div class="st-canvas" id="stCanvas"></div><div class="st-tools"><button class="st-btn" id="stAll">全部盒子</button><button class="st-btn" id="stAngle">立体视角</button><button class="st-btn" id="stTop">俯视定位</button><button class="st-btn" id="stLid">合上盒盖</button><button class="st-btn" id="stQuality" aria-pressed="false">流畅模式</button><button class="st-btn" id="stExport">导出模型</button></div><div class="st-hint" id="stHint">拖动旋转 · 滚轮缩放 · 下方格子可长按拖动换位</div></div><aside class="st-editor"><h3>位置与器件</h3><div id="stEmpty" class="st-empty">点击 3D 模型或下方位置表，编辑器件名称。长按格子拖到目标位置，后面的格子会依次后移。</div><form id="stForm" hidden><div class="st-id" id="stId"></div><div class="st-sub" id="stPosition"></div><label>关联库存器件<select id="stComponent"><option value="">仅命名，不关联库存</option></select></label><label>器件名称<input id="stName" maxlength="80" placeholder="例如 1N5819W"></label><label>备注<textarea id="stNotes" maxlength="500" placeholder="封装、参数或其他说明"></textarea></label><button class="st-btn primary" type="submit">保存此位置</button></form><div class="st-status" id="stStatus" role="status">名称保存到当前仓库，云端状态见左侧同步指示。</div></aside></div><div class="st-grid-wrap"><div class="st-grid-title"><strong id="stGridTitle"></strong><span class="st-sub">A 行在上方 · 01 列在左侧 · 双击改名称 · 长按拖动调整顺序</span></div><div id="stGrid" class="st-grid"></div></div>`;
 const $=s=>root.querySelector(s);const bridge=window.ComponentStorageBridge;
 let boxes=exampleBoxes.map(b=>({...b})), active=boxes[0], selected=null,overview=false,opened=true,signature='',editScope='',editingBoxId='',editingId='',scene,renderer,camera,controls,group,lid,picks=[],slotGroups=new Map();
 let records={};let components=[];let pendingFrame=0,lastFrameTime=0;
+let gridSkipClick=false,gridGhost=null,gridDropId='';
 function invalidate(){if(pendingFrame||!renderer)return;pendingFrame=1;setTimeout(()=>requestAnimationFrame(()=>{pendingFrame=0;if(!root.classList.contains('active')||document.hidden)return;lastFrameTime=performance.now();renderer.render(scene,camera);}),Math.max(0,34-(performance.now()-lastFrameTime)));}
 new MutationObserver(invalidate).observe(root,{attributes:true,attributeFilter:['class']});
 document.addEventListener('visibilitychange',invalidate);
@@ -74,11 +75,96 @@ function renderGrid(){
     cell.title=`${s.id} ${d.name||'未命名'} · 双击改名称`;
     cell.setAttribute('aria-label',cell.title);
     cell.append(el('b',s.id),el('span',d.name||'未命名'));
-    cell.onclick=()=>select(s.id);
+    cell.onclick=()=>{if(gridSkipClick){gridSkipClick=false;return;}select(s.id);};
     cell.ondblclick=e=>{e.preventDefault();inlineEdit(s.id,cell);};
     cell.onkeydown=e=>{if(e.key==='Enter'||e.key==='F2'){e.preventDefault();inlineEdit(s.id,cell);}};
     grid.append(cell);
   }
+}
+function clearGridDrop(){
+  $('#stGrid')?.querySelectorAll('.st-cell.drop-target,.st-cell.dragging,.st-cell.pressing').forEach(node=>node.classList.remove('drop-target','dragging','pressing'));
+  if(gridGhost){gridGhost.remove();gridGhost=null;}
+  gridDropId='';
+}
+function commitGridReorder(from,to){
+  if(from===to||from<0||to<0) return;
+  const ids=slots(active).map(s=>s.id);
+  try{
+    bridge.reorderSlots(ids,from,to,read().scope);
+    read();
+    renderBoxes();
+    renderGrid();
+    build();
+    $('#stStatus').textContent=`已把第 ${from+1} 格移到第 ${to+1} 格，后面的格子已依次后移。`;
+  }catch(error){
+    $('#stStatus').textContent=error.message;
+  }
+}
+function bindGridDrag(){
+  const grid=$('#stGrid');
+  if(!grid||grid.dataset.dragBound) return;
+  grid.dataset.dragBound='1';
+  grid.addEventListener('pointerdown',event=>{
+    if(event.button&&event.button!==0) return;
+    if(editingId) return;
+    if(event.target.closest('input,textarea,button,select')) return;
+    const cell=event.target.closest('.st-cell');
+    if(!cell) return;
+    const fromId=cell.dataset.slotId;
+    const ids=slots(active).map(s=>s.id);
+    const from=ids.indexOf(fromId);
+    if(from<0) return;
+    const startX=event.clientX,startY=event.clientY;
+    let started=false;
+    cell.classList.add('pressing');
+    $('#stStatus').textContent='按住约半秒，格子变黄后即可拖动换位。';
+    const timer=window.setTimeout(()=>{
+      started=true;
+      gridSkipClick=true;
+      cell.classList.remove('pressing');
+      cell.classList.add('dragging');
+      gridGhost=cell.cloneNode(true);
+      gridGhost.className='st-cell-ghost';
+      document.body.appendChild(gridGhost);
+      gridGhost.style.left=`${startX}px`;
+      gridGhost.style.top=`${startY}px`;
+      $('#stStatus').textContent='可以拖了：拖到目标格子松开，后面的格子会依次后移。';
+    },350);
+    const onMove=ev=>{
+      const dist=Math.hypot(ev.clientX-startX,ev.clientY-startY);
+      if(!started&&dist>10){
+        window.clearTimeout(timer);
+        cell.classList.remove('pressing');
+        return;
+      }
+      if(!started) return;
+      ev.preventDefault();
+      gridGhost.style.left=`${ev.clientX}px`;
+      gridGhost.style.top=`${ev.clientY}px`;
+      const over=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('#stGrid .st-cell');
+      grid.querySelectorAll('.st-cell.drop-target').forEach(node=>node.classList.remove('drop-target'));
+      if(over&&over.dataset.slotId&&over.dataset.slotId!==fromId){
+        over.classList.add('drop-target');
+        gridDropId=over.dataset.slotId;
+      }else gridDropId='';
+    };
+    const onUp=ev=>{
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove',onMove);
+      window.removeEventListener('pointerup',onUp);
+      window.removeEventListener('pointercancel',onUp);
+      cell.classList.remove('pressing');
+      if(!started) return;
+      ev.preventDefault();
+      const toId=gridDropId||document.elementFromPoint(ev.clientX,ev.clientY)?.closest('#stGrid .st-cell')?.dataset.slotId||'';
+      clearGridDrop();
+      const to=ids.indexOf(toId);
+      if(to>=0) commitGridReorder(from,to);
+    };
+    window.addEventListener('pointermove',onMove,{passive:false});
+    window.addEventListener('pointerup',onUp);
+    window.addEventListener('pointercancel',onUp);
+  });
 }
 function inlineEdit(id,cell){
   if(editingId===id) return;
@@ -108,7 +194,7 @@ function inlineEdit(id,cell){
         const record=validateRecord(id,{name:input.value,notes:d.notes||'',componentId:d.componentId||''},boxes);
         bridge.save(id,record,editScope);
         read();
-        $('#stStatus').textContent='已保存到当前浏览器。';
+        $('#stStatus').textContent='已保存到当前仓库。云端同步结果请查看左侧状态。';
       }catch(error){
         $('#stStatus').textContent=error.message;
       }
@@ -263,9 +349,9 @@ $('#stAll').onclick=()=>{overview=true;selected=null;$('#stForm').hidden=true;$(
 $('#stAngle').onclick=()=>view(false);$('#stTop').onclick=()=>view(true);$('#stLid').onclick=()=>{if(overview)return;opened=!opened;if(lid)lid.rotation.x=opened?-Math.PI*.62:0;$('#stLid').textContent=opened?'合上盒盖':'打开盒盖';renderer.shadowMap.needsUpdate=true;invalidate();};
 $('#stQuality').onclick=()=>{const quality=!renderer.shadowMap.enabled;renderer.shadowMap.enabled=quality;renderer.shadowMap.needsUpdate=true;renderer.setPixelRatio(Math.min(devicePixelRatio||1,quality?2:1.75));const host=$('#stCanvas');if(host.clientWidth&&host.clientHeight)renderer.setSize(host.clientWidth,host.clientHeight,false);scene.traverse(o=>{if(o.material)for(const m of [].concat(o.material))m.needsUpdate=true;});$('#stQuality').textContent=quality?'光影模式':'流畅模式';$('#stQuality').setAttribute('aria-pressed',String(quality));invalidate();};
 $('#stComponent').onchange=()=>{const c=components.find(c=>c.id===$('#stComponent').value);if(c)$('#stName').value=c.name;};
-$('#stForm').onsubmit=e=>{e.preventDefault();try{const record=validateRecord(selected,{name:$('#stName').value,notes:$('#stNotes').value,componentId:$('#stComponent').value},boxes);bridge.save(selected,record,editScope);read();build();select(selected);renderBoxes();$('#stStatus').textContent='已保存到当前浏览器。';}catch(error){$('#stStatus').textContent=error.message;}};
+$('#stForm').onsubmit=e=>{e.preventDefault();try{const record=validateRecord(selected,{name:$('#stName').value,notes:$('#stNotes').value,componentId:$('#stComponent').value},boxes);bridge.save(selected,record,editScope);read();build();select(selected);renderBoxes();$('#stStatus').textContent='已保存到当前仓库。云端同步结果请查看左侧状态。';}catch(error){$('#stStatus').textContent=error.message;}};
 $('#stSearch').oninput=()=>{read();const q=$('#stSearch').value.trim().toLowerCase(),results=$('#stResults');results.replaceChildren();if(!q)return;let count=0;for(const b of boxes)for(const s of slots(b)){const d=data(s.id);if(`${s.id} ${d.name}`.toLowerCase().includes(q)){count++;if(count<=30){const btn=el('button',`${s.id} · ${d.name||'未命名'}`,'st-btn');btn.onclick=()=>{showBox(b);select(s.id);view(true);};results.append(btn);}}}if(!count)results.append(el('span','没有匹配的位置或器件','st-sub'));if(count>30)results.append(el('span',`共 ${count} 个结果，显示前 30 个，请缩小搜索范围`,'st-sub'));};
-$('#stExport').onclick=async()=>{if(!group)return;$('#stStatus').textContent='正在导出 3D 模型…';try{const result=await new GLTFExporter().parseAsync(group,{binary:true});const url=URL.createObjectURL(new Blob([result],{type:'model/gltf-binary'}));const a=document.createElement('a');a.href=url;a.download=`${overview?'all-boxes':active.id}.glb`;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);$('#stStatus').textContent='模型已导出。名称编辑和本地保存由网站模块提供。';}catch(e){$('#stStatus').textContent='导出失败：'+e.message;}};
+$('#stExport').onclick=async()=>{if(!group)return;$('#stStatus').textContent='正在导出 3D 模型…';try{const result=await new GLTFExporter().parseAsync(group,{binary:true});const url=URL.createObjectURL(new Blob([result],{type:'model/gltf-binary'}));const a=document.createElement('a');a.href=url;a.download=`${overview?'all-boxes':active.id}.glb`;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);$('#stStatus').textContent='模型已导出。名称编辑和云端同步由网站模块提供。';}catch(e){$('#stStatus').textContent='导出失败：'+e.message;}};
 function fillColorOptions(type,selected){
   const sel=$('#stBoxColor');
   sel.replaceChildren();
@@ -357,4 +443,4 @@ $('#stBoxForm').onsubmit=e=>{
   }catch(error){$('#stStatus').textContent=error.message;}
 };
 function refresh(){if(editingId)return;const v=read(),sig=JSON.stringify([v.scope,records,v.boxes,components.map(c=>[c.id,c.name,c.location])]);if(sig===signature)return;signature=sig;if(editScope&&v.scope!==editScope){selected=null;$('#stForm').hidden=true;$('#stEmpty').hidden=false;$('#stStatus').textContent='已切换仓库，请重新选择位置。';}renderBoxes();renderGrid();build();}
-read();signature=JSON.stringify([bridge.read().scope,records,bridge.read().boxes,components.map(c=>[c.id,c.name,c.location])]);renderBoxes();renderGrid();init3d();setInterval(()=>{if(root.classList.contains('active')&&!document.hidden)refresh();},5000);
+read();signature=JSON.stringify([bridge.read().scope,records,bridge.read().boxes,components.map(c=>[c.id,c.name,c.location])]);renderBoxes();renderGrid();bindGridDrag();init3d();setInterval(()=>{if(root.classList.contains('active')&&!document.hidden)refresh();},5000);

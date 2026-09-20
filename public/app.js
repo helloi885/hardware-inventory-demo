@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'component-vault-open-source-data-v1';
+  const STORAGE_KEY = 'component-vault-open-source-data-v2';
   const CATEGORY_COLORS = ['#168a62', '#3377b8', '#c77917', '#7358ac', '#7c938a', '#c84e4e'];
   const titleMap = {
     storage: ['实物位置', '3D 器件收纳'],
@@ -69,9 +69,8 @@
     return String(value || '').trim().toLocaleLowerCase('zh-CN');
   }
 
-  function inferStorageLayout(data) {
-    if (data?.storageLayout === 'example') return 'example';
-    return 'full';
+  function inferStorageLayout() {
+    return 'example';
   }
 
   function migrateState(saved) {
@@ -180,9 +179,14 @@
     return state.components.find(component => component.id === id);
   }
 
+  function hasKnownQuantity(component) {
+    return component != null && component.quantity !== null && component.quantity !== undefined && component.quantity !== '';
+  }
+
   function stockState(component) {
+    if (!hasKnownQuantity(component)) return { key: 'unknown', label: '数量未知' };
     if (component.quantity <= 0) return { key: 'zero', label: '缺货' };
-    if (component.quantity <= component.min) return { key: 'low', label: '库存偏低' };
+    if (component.min && component.quantity <= component.min) return { key: 'low', label: '库存偏低' };
     return { key: 'normal', label: '库存正常' };
   }
 
@@ -1418,7 +1422,7 @@
     $('#componentPackage').value = component?.package || '';
     $('#componentCode').value = component?.code || '';
     $('#componentSpecs').value = component?.specs || '';
-    $('#componentQuantity').value = component?.quantity ?? 0;
+    $('#componentQuantity').value = hasKnownQuantity(component) ? component.quantity : '';
     $('#componentMin').value = component?.min ?? 5;
     $('#componentLocation').value = component?.location || '';
     $('#componentSupplier').value = component?.supplier || '';
@@ -1543,7 +1547,7 @@
       package: $('#componentPackage').value.trim(),
       code: $('#componentCode').value.trim(),
       specs: $('#componentSpecs').value.trim(),
-      quantity: Math.max(0, Number($('#componentQuantity').value) || 0),
+      quantity: $('#componentQuantity').value.trim() === '' ? null : Math.max(0, Number($('#componentQuantity').value) || 0),
       min: Math.max(0, Number($('#componentMin').value) || 0),
       location: $('#componentLocation').value.trim(),
       supplier: $('#componentSupplier').value.trim(),
@@ -2388,6 +2392,42 @@
         });
       });
       state.storageBoxes = clone(customBoxes);
+      try { saveState(); } catch (error) { state = previous; throw error; }
+    },
+    reorderSlots(slotIds, fromIndex, toIndex, expectedScope) {
+      if (expectedScope !== localStorageKey()) throw new Error('仓库已切换，请重新选择位置');
+      if (!Array.isArray(slotIds) || slotIds.length < 2) throw new Error('这个收纳盒没有可调整的格子');
+      const from = Number(fromIndex);
+      const to = Number(toIndex);
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= slotIds.length || to >= slotIds.length) throw new Error('拖放位置无效');
+      if (from === to) return;
+      const previous = clone(state);
+      state.storage3d = state.storage3d || {};
+      const contents = slotIds.map(id => {
+        const rec = state.storage3d[id];
+        return rec ? { name: String(rec.name || ''), notes: String(rec.notes || ''), componentId: String(rec.componentId || '') } : { name: '', notes: '', componentId: '' };
+      });
+      const [moved] = contents.splice(from, 1);
+      contents.splice(to, 0, moved);
+      slotIds.forEach(id => {
+        const rec = state.storage3d[id];
+        if (rec?.componentId) {
+          const component = state.components.find(item => item.id === rec.componentId);
+          if (component?.location === id) component.location = '';
+        }
+      });
+      slotIds.forEach((id, index) => {
+        const rec = contents[index];
+        if (!rec.name && !rec.notes && !rec.componentId) {
+          delete state.storage3d[id];
+          return;
+        }
+        state.storage3d[id] = { name: rec.name.slice(0, 80), notes: rec.notes.slice(0, 500), componentId: rec.componentId };
+        if (rec.componentId) {
+          const component = state.components.find(item => item.id === rec.componentId);
+          if (component) component.location = id;
+        }
+      });
       try { saveState(); } catch (error) { state = previous; throw error; }
     }
   };
