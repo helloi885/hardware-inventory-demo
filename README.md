@@ -3,7 +3,7 @@
 > Hardware Inventory Demo — 本地电子元器件库存管理。  
 > 含库存总览、元件明细、出入库、3D 器件收纳、BOM 导入、Gerber 焊接对料和 12 套主题。数据保存在当前浏览器。
 
-![3D 器件收纳](docs/screenshot.png)
+![3D 器件收纳：默认 1 个长盒 + 1 个黄色试管盒](docs/screenshot.png)
 
 ![12 套主题](docs/themes.png)
 
